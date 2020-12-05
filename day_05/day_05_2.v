@@ -1,7 +1,6 @@
 import os
 
 fn bisect(min_num int, max_num int, seat_str string, lower_char byte, upper_char byte) int {
-	// println('Current $seat_str $min_num $max_num')
 	if seat_str.len == 0 {
 		return min_num
 	}
@@ -24,10 +23,9 @@ fn main() {
 	mut seat_id_list := seat_list.map(calculate_seat_id(it))
 	seat_id_list.sort()
 	for index, id in seat_id_list {
-		if index != 0 && index != seat_id_list.len - 1 {
-			if seat_id_list[index - 1] == id - 1 && seat_id_list[index + 1] == id + 2 {
-				println('Your seat id is ${id + 1}')
-			}
+		if seat_id_list[index + 1] != id + 1 {
+			println('Your seat id is ${id + 1}')
+			break
 		}
 	}
 }
