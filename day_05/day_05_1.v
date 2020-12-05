@@ -11,7 +11,7 @@ fn bisect(min_num int, max_num int, seat_str string, lower_char byte, upper_char
 
 fn calculate_seat_id(seat_str string) int {
 	row := bisect(0, 127, seat_str[0..7], `F`, `B`)
-	column := bisect(0, 7, seat_str[6..seat_str.len], `L`, `R`)
+	column := bisect(0, 7, seat_str[7..seat_str.len], `L`, `R`)
 	return row * 8 + column
 }
 
