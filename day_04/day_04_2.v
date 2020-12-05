@@ -1,6 +1,17 @@
 import os
 import regex
 
+type MyString = string
+
+fn (s MyString) match_regex(pattern string) bool {
+	mut re := regex.new()
+	re.compile_opt(pattern) or {
+		println(err)
+	}
+	start, end := re.match_string(s)
+	return start >= 0 && end > start
+}
+
 const (
 	expected_fields = {
 		'byr': fn (f string) bool {
@@ -21,13 +32,8 @@ const (
 			}
 			return false
 		}
-		'hcl': fn (f string) bool {
-			mut re := regex.new()
-			re.compile_opt(r'^#[0-9a-f]{6}$') or {
-				println(err)
-			}
-			start, end := re.match_string(f)
-			return start >= 0 && end > start
+		'hcl': fn (f MyString) bool {
+			return f.match_regex(r'^#[0-9a-f]{6}$')
 		}
 		'ecl': fn (f string) bool {
 			return f in ['amb', 'blu', 'brn', 'gry', 'grn', 'hzl', 'oth']
