@@ -1,21 +1,10 @@
 import os
 
-fn remove_duplicates(s string) string {
-	mut single_letters := ''
-	for letter in s {
-		if letter.str() !in single_letters {
-			single_letters += letter.str()
-		}
-	}
-	return single_letters
-}
-
 fn get_everyone_yes(group string) int {
 	answers := group.split('\n')
-	first_person := remove_duplicates(answers[0])
-	mut min_len := first_person.len
-	for answer in answers {
-		a := answer.split('').filter(it in first_person)
+	mut min_len := answers.first().len
+	for answer in answers[1..answers.len] {
+		a := answer.split('').filter(it in answers.first())
 		if a.len < min_len {
 			min_len = a.len
 		}
