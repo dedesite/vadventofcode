@@ -1,3 +1,6 @@
+// Solution taken from 
+// https://www.reddit.com/r/adventofcode/comments/kdf85p/2020_day_15_solutions/gfypyty
+
 const (
 	n  = 30000000
 	k  = 6
