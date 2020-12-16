@@ -7,7 +7,7 @@ const (
 	i0 = k - 1
 )
 
-mut data := []int{ cap: n }
+mut data := []int{ len: n, init:-1 }
 input := '8,13,1,0,18,9'
 for i, num in input.split(',') {
 	data[i] = num.int()
