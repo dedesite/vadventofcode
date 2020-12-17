@@ -27,7 +27,7 @@ fn parse_ticket(ticket_str string) []int {
 	return ticket_str.split(',').map(it.int())
 }
 
-fn is_value_valid_for_rule(value int, range []int) bool {
+fn is_value_in_ranges(value int, range []int) bool {
 	return (value >= range[0] && value <= range[1]) || (value >= range[2] && value <= range[3])
 }
 
@@ -36,7 +36,7 @@ fn find_invalid_value_for_ticket(ticket []int, rules []Rule) int {
 	for value in ticket {
 		mut valid := false
 		for rule in rules {
-			if is_value_valid_for_rule(value, rule.value_ranges) {
+			if is_value_in_ranges(value, rule.value_ranges) {
 				valid = true
 			}
 		}
@@ -52,7 +52,7 @@ fn find_rule_field_index(rule Rule, nearby_tickets [][]int, indexes_already_take
 	for ticket_ind, ticket in nearby_tickets {
 		mut current_good_indexes := []int{}
 		for ind, value in ticket {
-			if is_value_valid_for_rule(value, rule.value_ranges) {
+			if is_value_in_ranges(value, rule.value_ranges) {
 				current_good_indexes << ind
 			}
 		}
@@ -90,13 +90,33 @@ for ticket in rules_and_tickets[my_ticket_ind + 3..rules_and_tickets.len] {
 }
 mut indexes_already_taken := []int{}
 for indexes_already_taken.len < rules.len {
-	for mut rule in rules.filter(it.field_index == -1) {
-		indexes := find_rule_field_index(rule, valid_tickets, indexes_already_taken)
-		if indexes.len == 1 {
-			rule.field_index = indexes[0]
-			indexes_already_taken << indexes[0]
+	// Possible bug ? rule is copied and not referenced
+	// for mut rule in rules.filter(it.field_index == -1) {
+	for mut rule in rules {
+		if rule.field_index == -1 {
+			indexes := find_rule_field_index(rule, valid_tickets, indexes_already_taken)
+			if indexes.len == 1 {
+				rule.field_index = indexes[0]
+				indexes_already_taken << indexes[0]
+			}
 		}
 	}
 }
-println(rules)
-println('My ticket scannin error rate is $ticket_scanning_error_rate')
+rules.sort(a.field_index < b.field_index)
+for ticket in valid_tickets {
+	for ind, field in ticket {
+		rule_field := rules[ind]
+		if !is_value_in_ranges(field, rule_field.value_ranges) {
+			panic('Problem field $field is not valid rule : $rule_field')
+		}
+	}
+}
+mut departure_values := i64(1)
+for ind, field in my_ticket {
+	rule_field := rules[ind]
+	// Add startwith method
+	if rule_field.name.split(' ')[0] == 'departure' {
+		departure_values *= field
+	}
+}
+println('The product of departure values is $departure_values')
