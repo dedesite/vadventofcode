@@ -111,12 +111,12 @@ for ticket in valid_tickets {
 		}
 	}
 }
-mut departure_values := i64(1)
+mut departure_values := u64(1)
 for ind, field in my_ticket {
 	rule_field := rules[ind]
 	// Add startwith method
 	if rule_field.name.split(' ')[0] == 'departure' {
-		departure_values *= field
+		departure_values *= u64(field)
 	}
 }
 println('The product of departure values is $departure_values')
