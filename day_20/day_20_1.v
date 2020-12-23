@@ -1,43 +1,39 @@
 import os
-import strconv
 
-type Tiles = map[string][]u64
-
-fn convert_line_to_uint(line string) u64 {
-	return strconv.parse_uint(line.replace_each(['.', '0', '#', '1']), 2, 10)
+enum Position {
+	top
+	right
+	bottom
+	left
 }
 
-fn parse_tile(tile []string) (string, []u64) {
-	num := tile[0].split(' ')[1]
-	tile_num := num[0..num.len - 1]
+struct Tile {
+mut:
+	id              u64
+	borders         []string = []string{len: 4}
+	reverse_borders []string = []string{len: 4}
+}
 
+fn parse_tile(tile_str []string) Tile {
+	mut tile := Tile{}
+	// line format : "Tile 2129:"
+	num := tile_str[0].split(' ')[1]
+	tile.id = u64(num[0..num.len - 1].int())
 	// border top
-	top := convert_line_to_uint(tile[1])
-	top_r := convert_line_to_uint(tile[1].reverse())
+	tile.borders[Position.top] = tile_str[1]
 	// border bottom
-	bottom := convert_line_to_uint(tile[10])
-	bottom_r := convert_line_to_uint(tile[10].reverse())
-
-	mut left_array := []string{}
-	mut right_array := []string{}
-	// Then check for the left and right borders
-	for line in tile[1..tile.len] {
-		left_array << line[0].str()
-		right_array << line[line.len - 1].str()
-	}
-
-	left := convert_line_to_uint(left_array.join(''))
-	left_r := convert_line_to_uint(left_array.join('').reverse())
-	right := convert_line_to_uint(right_array.join(''))
-	right_r := convert_line_to_uint(right_array.join('').reverse())
-
-	return tile_num, [top, top_r, bottom, bottom_r, left, left_r, right, right_r]
+	tile.borders[Position.bottom] = tile_str[10]
+	tile_lines := tile_str[1..tile_str.len]
+	tile.borders[Position.left] = tile_lines.map(it[0].str()).join('')
+	tile.borders[Position.right] = tile_lines.map(it[it.len - 1].str()).join('')
+	tile.reverse_borders = tile.borders.map(it.reverse())
+	return tile
 }
 
-fn has_linked_border(tile_num string, border u64, tiles_map map[string][]u64) bool {
-	for num, borders in tiles_map {
-		if num != tile_num {
-			if border in borders {
+fn has_linked_border(tile_id u64, border string, tiles_array []Tile) bool {
+	for tile in tiles_array {
+		if tile.id != tile_id {
+			if border in tile.borders || border in tile.reverse_borders {
 				return true
 			}
 		}
@@ -46,35 +42,28 @@ fn has_linked_border(tile_num string, border u64, tiles_map map[string][]u64) bo
 }
 
 fn main() {
-	tiles_content := os.read_file('input')?
-
+	tiles_content := os.read_file('input') ?
 	tiles_list := tiles_content.split('\n\n')
-
-	mut tiles_map := map[string][]u64
-
+	mut tiles_array := []Tile{}
 	for tile in tiles_list {
-		if tile != "" {
-			num, borders := parse_tile(tile.split('\n'))
-			tiles_map[num] = borders	
+		if tile != '' {
+			tiles_array << parse_tile(tile.split('\n'))
 		}
 	}
-
-
 	mut corners_id_product := u64(1)
 	// Just check for corners, tile that only has 2 borders in common
-	for tile_num, borders in tiles_map {
+	for tile in tiles_array {
 		mut linked_border_count := 0
-		for b in borders {
-			if has_linked_border(tile_num, b, tiles_map) {
+		for b in tile.borders {
+			if has_linked_border(tile.id, b, tiles_array) {
 				linked_border_count++
 			}
 		}
 		// Don't know why it's 4 and not 2 ?
-		if linked_border_count == 4 {
-			println("One corner found $tile_num")
-			corners_id_product *= u64(tile_num.int())
+		if linked_border_count == 2 {
+			println('One corner found $tile.id')
+			corners_id_product *= tile.id
 		}
 	}
-
-	println("Corner product : $corners_id_product")	
+	println('Corner product : $corners_id_product')
 }
