@@ -59,7 +59,7 @@ fn main() {
 				linked_border_count++
 			}
 		}
-		// Don't know why it's 4 and not 2 ?
+
 		if linked_border_count == 2 {
 			println('One corner found $tile.id')
 			corners_id_product *= tile.id
