@@ -1,4 +1,5 @@
 import os
+import regex
 
 const (
 	top        = 0
@@ -6,7 +7,24 @@ const (
 	bottom     = 2
 	left       = 3
 	linked_dir = [bottom, left, top, right]
+	// It's a regex . are any characters
+	//monster_top    = r'..................#.'
+	monster_top    = r'.*(\W{18}#\W{1})'
+	monster_middle = r'#\W{4}##\W{4}##\W{4}###'
+	monster_bottom = r'\W{1}#\W{2}#\W{2}#\W{2}#\W{2}#\W{2}#\W{3}'
 )
+
+type MyString = string
+
+// todo : add this to regex module
+fn (s MyString) match_regex(pattern string) bool {
+	mut re := regex.new()
+	re.compile_opt(pattern) or {
+		println(err)
+	}
+	start, end := re.match_string(s)
+	return start >= 0 && end > start
+}
 
 struct Tile {
 mut:
@@ -127,13 +145,29 @@ fn get_linked_tiles(tile Tile, tiles_array []Tile) []u64 {
 	return linked_tiles
 }
 
-fn generate_big_picture(upper_left_corner Tile, tiles_array []Tile) []string {
-	mut big_picture := []string{}
+fn rotate_camera_array_right(camera_array []string) []string {
+	mut new_content := []string{len: camera_array.len}
+	for ind in 0 .. camera_array.len {
+		mut rotate_line := []string{}
+		for line in camera_array.reverse() {
+			rotate_line << line[ind].str()
+		}
+		new_content[ind] = rotate_line.join('')
+	}
+	return new_content
+}
+
+fn reverse_camera_array(camera_array []string) []string {
+	return camera_array.map(it.reverse())
+}
+
+fn generate_camera_array(upper_left_corner Tile, tiles_array []Tile) []string {
+	mut camera_array := []string{}
 	mut current_tile := upper_left_corner
 	mut first_col := current_tile
 	mut current_count := 0
 	mut current_line_num := 0
-	big_picture = current_tile.content
+	camera_array = current_tile.content
 	for current_count < tiles_array.len {
 		right_id := current_tile.linked_tiles[right]
 		if right_id == 0 {
@@ -143,7 +177,7 @@ fn generate_big_picture(upper_left_corner Tile, tiles_array []Tile) []string {
 				current_tile = align_tiles(first_col, bottom, current_tile)
 				first_col = current_tile
 				for line in current_tile.content {
-					big_picture << line
+					camera_array << line
 				}
 			}
 			current_line_num++
@@ -154,16 +188,60 @@ fn generate_big_picture(upper_left_corner Tile, tiles_array []Tile) []string {
 		right_tile = align_tiles(current_tile, right, right_tile)
 		for ind, line in right_tile.content {
 			line_num := right_tile.content.len * current_line_num + ind
-			big_picture[line_num] = '${big_picture[line_num]}$line'
+			camera_array[line_num] = '${camera_array[line_num]}$line'
 		}
 		current_tile = right_tile
 		current_count++
 	}
-	return big_picture
+	return camera_array
+}
+
+fn find_sea_monsters(camera_array []string) bool {
+	mut re_top := regex.new()
+	mut re_middle := regex.new()
+	mut re_bottom := regex.new()
+	re_top.compile_opt(monster_top) or { println(err) }
+	re_middle.compile_opt(monster_middle) or { println(err) }
+	re_bottom.compile_opt(monster_bottom) or { println(err) }
+
+	for ind, line in camera_array[0..camera_array.len - 2] {
+		s, e := re_top.match_string(line)
+		if ind == 2 {
+			//t := MyString(line[2..line.len-2])
+			//t.match_regex(monster_middle)
+			println(line)
+			println('start $s end $e')
+			//println(t.match_regex(monster_middle))
+		}
+		if re_top.groups.len >= 2  {
+			start := re_top.groups[0]
+			end := re_top.groups[1]
+			middle := MyString(camera_array[ind + 1][start..end])
+			bottom := MyString(camera_array[ind + 2][start..end])
+
+			if middle.match_regex(monster_middle) && bottom.match_regex(monster_bottom) {
+			println(start)
+			println(end)
+			println(line[start..end])
+			println("$middle $middle.len")
+			println(bottom)
+			println('=================')
+			println(monster_top)
+			println(monster_middle.len)
+			println(monster_bottom)
+				return true
+			}
+		}
+	}
+	return false
+}
+
+fn mark_sea_monsters(camera_array []string) {
+
 }
 
 fn main() {
-	tiles_content := os.read_file('input') ?
+	tiles_content := os.read_file('input_small') ?
 	tiles_list := tiles_content.split('\n\n')
 	mut tiles_array := []Tile{}
 	for tile in tiles_list {
@@ -180,14 +258,24 @@ fn main() {
 		linked := tile.linked_tiles.filter(it != 0)
 		if linked.len == 2 {
 			corners_id_product *= tile.id
-			if tile.linked_tiles[right] != 0 && tile.linked_tiles[bottom] != 0 {
+			if tile.id == 1951 {
+				tile.rotate_right()
+				tile.rotate_right()
+				tile.reverse_horizontal()
+			}
+			if tile.id == 1951 && tile.linked_tiles[right] != 0 && tile.linked_tiles[bottom] != 0 {
 				upper_left_corner = tile
+				println(tile.id)
 			}
 		}
 	}
-	big_picture := generate_big_picture(upper_left_corner, tiles_array)
-	println('BIG PICTURE')
-	for line in big_picture {
-		println('$line')
+	mut camera_array := generate_camera_array(upper_left_corner, tiles_array)
+
+	// temp
+	camera_array = rotate_camera_array_right(camera_array)
+	camera_array = reverse_camera_array(camera_array)
+
+	if find_sea_monsters(camera_array) {
+		println('YOUPi')
 	}
 }
