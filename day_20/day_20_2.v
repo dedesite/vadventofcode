@@ -2,16 +2,15 @@ import os
 import regex
 
 const (
-	top        = 0
-	right      = 1
-	bottom     = 2
-	left       = 3
-	linked_dir = [bottom, left, top, right]
-	// It's a regex . are any characters
-	//monster_top    = r'..................#.'
-	monster_top    = r'.*(\W{18}#\W{1})'
-	monster_middle = r'#\W{4}##\W{4}##\W{4}###'
-	monster_bottom = r'\W{1}#\W{2}#\W{2}#\W{2}#\W{2}#\W{2}#\W{3}'
+	top                = 0
+	right              = 1
+	bottom             = 2
+	left               = 3
+	linked_dir         = [bottom, left, top, right]
+	monster_top        = r'[.#]{18}#[.#]{1}'
+	monster_middle     = r'#[.#]{4}##[.#]{4}##[.#]{4}###'
+	monster_bottom     = r'[.#]{1}#[.#]{2}#[.#]{2}#[.#]{2}#[.#]{2}#[.#]{2}#[.#]{3}'
+	monster_char_count = 15
 )
 
 type MyString = string
@@ -19,9 +18,7 @@ type MyString = string
 // todo : add this to regex module
 fn (s MyString) match_regex(pattern string) bool {
 	mut re := regex.new()
-	re.compile_opt(pattern) or {
-		println(err)
-	}
+	re.compile_opt(pattern) or { println(err) }
 	start, end := re.match_string(s)
 	return start >= 0 && end > start
 }
@@ -31,7 +28,7 @@ mut:
 	id              u64
 	borders         []string = []string{len: 4}
 	reverse_borders []string = []string{len: 4}
-	linked_tiles    []u64 = []u64{len: 4}
+	linked_tiles    []u64    = []u64{len: 4}
 	content         []string = []string{len: 8}
 }
 
@@ -196,52 +193,31 @@ fn generate_camera_array(upper_left_corner Tile, tiles_array []Tile) []string {
 	return camera_array
 }
 
-fn find_sea_monsters(camera_array []string) bool {
+fn count_sea_monsters(camera_array []string) int {
+	mut monster_count := 0
 	mut re_top := regex.new()
 	mut re_middle := regex.new()
 	mut re_bottom := regex.new()
 	re_top.compile_opt(monster_top) or { println(err) }
 	re_middle.compile_opt(monster_middle) or { println(err) }
 	re_bottom.compile_opt(monster_bottom) or { println(err) }
-
-	for ind, line in camera_array[0..camera_array.len - 2] {
-		s, e := re_top.match_string(line)
-		if ind == 2 {
-			//t := MyString(line[2..line.len-2])
-			//t.match_regex(monster_middle)
-			println(line)
-			println('start $s end $e')
-			//println(t.match_regex(monster_middle))
-		}
-		if re_top.groups.len >= 2  {
-			start := re_top.groups[0]
-			end := re_top.groups[1]
-			middle := MyString(camera_array[ind + 1][start..end])
+	for ind, line in camera_array[1..camera_array.len - 1] {
+		matches := re_middle.find_all(line)
+		for i := 0; i < matches.len; i += 2 {
+			start := matches[i]
+			end := matches[i + 1]
+			top := MyString(camera_array[ind][start..end])
 			bottom := MyString(camera_array[ind + 2][start..end])
-
-			if middle.match_regex(monster_middle) && bottom.match_regex(monster_bottom) {
-			println(start)
-			println(end)
-			println(line[start..end])
-			println("$middle $middle.len")
-			println(bottom)
-			println('=================')
-			println(monster_top)
-			println(monster_middle.len)
-			println(monster_bottom)
-				return true
+			if top.match_regex(monster_top) && bottom.match_regex(monster_bottom) {
+				monster_count++
 			}
 		}
 	}
-	return false
-}
-
-fn mark_sea_monsters(camera_array []string) {
-
+	return monster_count
 }
 
 fn main() {
-	tiles_content := os.read_file('input_small') ?
+	tiles_content := os.read_file('input') ?
 	tiles_list := tiles_content.split('\n\n')
 	mut tiles_array := []Tile{}
 	for tile in tiles_list {
@@ -258,24 +234,30 @@ fn main() {
 		linked := tile.linked_tiles.filter(it != 0)
 		if linked.len == 2 {
 			corners_id_product *= tile.id
-			if tile.id == 1951 {
-				tile.rotate_right()
-				tile.rotate_right()
-				tile.reverse_horizontal()
-			}
-			if tile.id == 1951 && tile.linked_tiles[right] != 0 && tile.linked_tiles[bottom] != 0 {
+			if tile.linked_tiles[right] != 0 && tile.linked_tiles[bottom] != 0 {
 				upper_left_corner = tile
-				println(tile.id)
 			}
 		}
 	}
 	mut camera_array := generate_camera_array(upper_left_corner, tiles_array)
-
-	// temp
-	camera_array = rotate_camera_array_right(camera_array)
-	camera_array = reverse_camera_array(camera_array)
-
-	if find_sea_monsters(camera_array) {
-		println('YOUPi')
+	mut monster_count := 0
+	for _ in 0 .. 4 {
+		mut count := count_sea_monsters(camera_array)
+		if count > monster_count {
+			monster_count = count
+		}
+		camera_array = reverse_camera_array(camera_array)
+		count = count_sea_monsters(camera_array)
+		if count > monster_count {
+			monster_count = count
+		}
+		camera_array = reverse_camera_array(camera_array)
+		camera_array = rotate_camera_array_right(camera_array)
 	}
+	mut sharp_count := 0
+	for line in camera_array {
+		sharp_count += line.replace('.', '').len
+	}
+	water_roughness := sharp_count - (monster_count * monster_char_count)
+	println('Water roughness : $water_roughness sharp count $sharp_count')
 }
